@@ -7,7 +7,7 @@
     <script src="bundle.js"></script>
   </head>
   <body>
-    <div id="new">
+    <div id="new" class="hide">
       <p>
       1. Create a new contract acceptance criteria:
       <p>
@@ -22,6 +22,30 @@
           <br>
           <input type="text" class="linkInput">
         </p>
+      </div>
+    </div>
+    <div id="process" class="hide">
+      <p>
+        1. These are the prices your corporation is willing to pay for these items. Review this information, and make sure you agree.
+      </p>
+      <div class="priceTable"></div>
+      <p>
+        2. Paste in your inventory of things you're intending on contracting out.
+      </p>
+      <div>
+        <textarea class="inventoryList"></textarea>
+      </div>
+      <div class="unrecognizedItemInBaggingArea hide">
+        <p>
+          2b. There are unrecognized items in the bagging area. Would you like
+          me to remove these items? (If so, make sure you're not actually contracting
+          them).
+        </p>
+        <button class="unrecognizedButton">Remove unrecognized items</button>
+      </div>
+      <div class="result hide">
+        3. Here's how much your corporation will pay for these items:
+        <p>Ƶ <span class="resultNumber">42</span></p>
       </div>
     </div>
   </body>

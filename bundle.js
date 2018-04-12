@@ -19,6 +19,102 @@ module.exports = [
 ]
 
 },{}],2:[function(require,module,exports){
+'use strict';
+var token = '%[a-f0-9]{2}';
+var singleMatcher = new RegExp(token, 'gi');
+var multiMatcher = new RegExp('(' + token + ')+', 'gi');
+
+function decodeComponents(components, split) {
+	try {
+		// Try to decode the entire string first
+		return decodeURIComponent(components.join(''));
+	} catch (err) {
+		// Do nothing
+	}
+
+	if (components.length === 1) {
+		return components;
+	}
+
+	split = split || 1;
+
+	// Split the array in 2 parts
+	var left = components.slice(0, split);
+	var right = components.slice(split);
+
+	return Array.prototype.concat.call([], decodeComponents(left), decodeComponents(right));
+}
+
+function decode(input) {
+	try {
+		return decodeURIComponent(input);
+	} catch (err) {
+		var tokens = input.match(singleMatcher);
+
+		for (var i = 1; i < tokens.length; i++) {
+			input = decodeComponents(tokens, i).join('');
+
+			tokens = input.match(singleMatcher);
+		}
+
+		return input;
+	}
+}
+
+function customDecodeURIComponent(input) {
+	// Keep track of all the replacements and prefill the map with the `BOM`
+	var replaceMap = {
+		'%FE%FF': '\uFFFD\uFFFD',
+		'%FF%FE': '\uFFFD\uFFFD'
+	};
+
+	var match = multiMatcher.exec(input);
+	while (match) {
+		try {
+			// Decode as big chunks as possible
+			replaceMap[match[0]] = decodeURIComponent(match[0]);
+		} catch (err) {
+			var result = decode(match[0]);
+
+			if (result !== match[0]) {
+				replaceMap[match[0]] = result;
+			}
+		}
+
+		match = multiMatcher.exec(input);
+	}
+
+	// Add `%C2` at the end of the map to make sure it does not replace the combinator before everything else
+	replaceMap['%C2'] = '\uFFFD';
+
+	var entries = Object.keys(replaceMap);
+
+	for (var i = 0; i < entries.length; i++) {
+		// Replace all decoded components
+		var key = entries[i];
+		input = input.replace(new RegExp(key, 'g'), replaceMap[key]);
+	}
+
+	return input;
+}
+
+module.exports = function (encodedURI) {
+	if (typeof encodedURI !== 'string') {
+		throw new TypeError('Expected `encodedURI` to be of type `string`, got `' + typeof encodedURI + '`');
+	}
+
+	try {
+		encodedURI = encodedURI.replace(/\+/g, ' ');
+
+		// Try the built in decoder first
+		return decodeURIComponent(encodedURI);
+	} catch (err) {
+		// Fallback to a more advanced decoder
+		return customDecodeURIComponent(encodedURI);
+	}
+};
+
+},{}],3:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -10384,52 +10480,341 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+'use strict';
+const strictUriEncode = require('strict-uri-encode');
+const decodeComponent = require('decode-uri-component');
+
+function encoderForArrayFormat(options) {
+	switch (options.arrayFormat) {
+		case 'index':
+			return (key, value, index) => {
+				return value === null ? [
+					encode(key, options),
+					'[',
+					index,
+					']'
+				].join('') : [
+					encode(key, options),
+					'[',
+					encode(index, options),
+					']=',
+					encode(value, options)
+				].join('');
+			};
+		case 'bracket':
+			return (key, value) => {
+				return value === null ? encode(key, options) : [
+					encode(key, options),
+					'[]=',
+					encode(value, options)
+				].join('');
+			};
+		default:
+			return (key, value) => {
+				return value === null ? encode(key, options) : [
+					encode(key, options),
+					'=',
+					encode(value, options)
+				].join('');
+			};
+	}
+}
+
+function parserForArrayFormat(options) {
+	let result;
+
+	switch (options.arrayFormat) {
+		case 'index':
+			return (key, value, accumulator) => {
+				result = /\[(\d*)\]$/.exec(key);
+
+				key = key.replace(/\[\d*\]$/, '');
+
+				if (!result) {
+					accumulator[key] = value;
+					return;
+				}
+
+				if (accumulator[key] === undefined) {
+					accumulator[key] = {};
+				}
+
+				accumulator[key][result[1]] = value;
+			};
+		case 'bracket':
+			return (key, value, accumulator) => {
+				result = /(\[\])$/.exec(key);
+				key = key.replace(/\[\]$/, '');
+
+				if (!result) {
+					accumulator[key] = value;
+					return;
+				}
+
+				if (accumulator[key] === undefined) {
+					accumulator[key] = [value];
+					return;
+				}
+
+				accumulator[key] = [].concat(accumulator[key], value);
+			};
+		default:
+			return (key, value, accumulator) => {
+				if (accumulator[key] === undefined) {
+					accumulator[key] = value;
+					return;
+				}
+
+				accumulator[key] = [].concat(accumulator[key], value);
+			};
+	}
+}
+
+function encode(value, options) {
+	if (options.encode) {
+		return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
+	}
+
+	return value;
+}
+
+function keysSorter(input) {
+	if (Array.isArray(input)) {
+		return input.sort();
+	}
+
+	if (typeof input === 'object') {
+		return keysSorter(Object.keys(input))
+			.sort((a, b) => Number(a) - Number(b))
+			.map(key => input[key]);
+	}
+
+	return input;
+}
+
+function extract(input) {
+	const queryStart = input.indexOf('?');
+	if (queryStart === -1) {
+		return '';
+	}
+	return input.slice(queryStart + 1);
+}
+
+function parse(input, options) {
+	options = Object.assign({arrayFormat: 'none'}, options);
+
+	const formatter = parserForArrayFormat(options);
+
+	// Create an object with no prototype
+	const ret = Object.create(null);
+
+	if (typeof input !== 'string') {
+		return ret;
+	}
+
+	input = input.trim().replace(/^[?#&]/, '');
+
+	if (!input) {
+		return ret;
+	}
+
+	for (const param of input.split('&')) {
+		let [key, value] = param.replace(/\+/g, ' ').split('=');
+
+		// Missing `=` should be `null`:
+		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
+		value = value === undefined ? null : decodeComponent(value);
+
+		formatter(decodeComponent(key), value, ret);
+	}
+
+	return Object.keys(ret).sort().reduce((result, key) => {
+		const value = ret[key];
+		if (Boolean(value) && typeof value === 'object' && !Array.isArray(value)) {
+			// Sort object keys, not values
+			result[key] = keysSorter(value);
+		} else {
+			result[key] = value;
+		}
+
+		return result;
+	}, Object.create(null));
+}
+
+exports.extract = extract;
+exports.parse = parse;
+
+exports.stringify = (obj, options) => {
+	const defaults = {
+		encode: true,
+		strict: true,
+		arrayFormat: 'none'
+	};
+
+	options = Object.assign(defaults, options);
+
+	if (options.sort === false) {
+		options.sort = () => {};
+	}
+
+	const formatter = encoderForArrayFormat(options);
+
+	return obj ? Object.keys(obj).sort(options.sort).map(key => {
+		const value = obj[key];
+
+		if (value === undefined) {
+			return '';
+		}
+
+		if (value === null) {
+			return encode(key, options);
+		}
+
+		if (Array.isArray(value)) {
+			const result = [];
+
+			for (const value2 of value.slice()) {
+				if (value2 === undefined) {
+					continue;
+				}
+
+				result.push(formatter(key, value2, result.length));
+			}
+
+			return result.join('&');
+		}
+
+		return encode(key, options) + '=' + encode(value, options);
+	}).filter(x => x.length > 0).join('&') : '';
+};
+
+exports.parseUrl = (input, options) => {
+	return {
+		url: input.split('?')[0] || '',
+		query: parse(extract(input), options)
+	};
+};
+
+},{"decode-uri-component":2,"strict-uri-encode":5}],5:[function(require,module,exports){
+'use strict';
+module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
+
+},{}],6:[function(require,module,exports){
 var $ = require("jquery");
+var queryString = require("query-string").parse(location.search);
 var itemLists = require("./itemLists.js")
 
-console.log(itemLists);
+function showNewScreen() {
+  $("#new").show();
+  var $itemListSelect = $("#new .itemList");
+  var $boxList = $("#new .boxList");
+  var $submitBox = $("#new .submitBox");
+  var $submit = $("#new .submit");
+  var $nextStep = $("#new .nextStep");
+  var $linkInput = $("#new .linkInput");
+  $itemListSelect.empty();
+  $itemListSelect.append($("<option></option>").val(null).html("Select one..."));
+  $.each(itemLists, function(k, v) {
+    console.log(v.name);
+    $itemListSelect.append($("<option></option>").val(k).html(v.name));
+  });
+  $itemListSelect.on("change", function(){
+    $itemListSelect.attr("disabled", "disabled");
+    var list = itemLists[$itemListSelect.val()].list;
+    $boxList.empty()
+    var table = "<p>2. Fill in the price you're willing to pay per item</p>\n"
+      + generatePriceListTable(list, null);
+    $boxList.append($(table));
+    $submitBox.show();
+  });
+  $submit.on("click", function() {
+    $nextStep.show();
+    var data = [];
+    $("#new .price").each(function(k, v) {
+      if(v.value.trim() == "") {
+        v.value = "0";
+      }
+      data.push(v.value);
+    });
+    $linkInput.val(location.href + "?l=" + $itemListSelect.val() + "&d=" + data.join(","));
+  });
+}
+
+function generatePriceListTable(list, prices) {
+  var table = "<table><thead><tr><th>Item Name</th><th>Price Per Unit (isk)</th></tr></thead><tbody>";
+  $.each(list, function(k, v) {
+    table += "<tr><td>" + v + "</td><td><input type='text' class='price'";
+    if(prices != null) {
+      if(prices[k].trim() == "") {
+        prices[k] = "0";
+      }
+      table += "value='" + prices[k] + "'";
+    }
+    table += "></td></tr>";
+  });
+  table += "</tbody></table>";
+  return table;
+}
+
+function parseItemList(text) {
+  return text.split(/\n|\r\n|\n\r/);
+}
+
 
 $(function() {
-  (function(){
-    // New page code
-    var $itemListSelect = $("#new .itemList");
-    var $boxList = $("#new .boxList");
-    var $submitBox = $("#new .submitBox");
-    var $submit = $("#new .submit");
-    var $nextStep = $("#new .nextStep");
-    var $linkInput = $("#new .linkInput");
-    $itemListSelect.empty();
-    $itemListSelect.append($("<option></option>").val(null).html("Select one..."));
-    $.each(itemLists, function(k, v) {
-      console.log(v.name);
-      $itemListSelect.append($("<option></option>").val(k).html(v.name));
-    });
-    $itemListSelect.on("change", function(){
-      $itemListSelect.attr("disabled", "disabled");
-      var list = itemLists[$itemListSelect.val()].list;
-      $boxList.empty()
-      var table = "<p>2. Fill in the price you're willing to pay per item</p>\n"
-        + "<table><thead><tr><th>Item Name</th><th>Price Per Unit (isk)</th></tr></thead><tbody>";
-      $.each(list, function(k, v) {
-        table += "<tr><td>" + v + "</td><td><input type='text' class='price'></td></tr>";
-      });
-      table += "</tbody></table>";
-      $boxList.append($(table));
-      $submitBox.show();
-    });
-    $submit.on("click", function() {
-      $nextStep.show();
-      var data = [];
-      $("#new .price").each(function(k, v) {
-        if(v.value.trim() == "") {
-          v.value = "0";
-        }
-        data.push(v.value);
-      });
-      $linkInput.val(location.href + "?l=" + $itemListSelect.val() + "&d=" + data.join(","));
-    });
-  })();
+  console.log(queryString["l"] === undefined);
+  if(queryString["l"] !== undefined && queryString["e"] !== undefined) {
+    (function() {
+      console.log("Existing page with edit");
+      // Existing page with edit
+    })();
+  } else if(queryString["l"] !== undefined && queryString["e"] === undefined){
+      (function(){
+        console.log("Existing page with process");
+        // Existing page with process
+        var $process = $("#process");
+        var $priceTable = $("#process .priceTable");
+        var $inventoryList = $("#process .inventoryList");
+        var $unexpected = $("#process .unrecognizedItemInBaggingArea");
+        var $result = $("#process .result");
+        var $resultNumber = $("#process .resultNumber");
+        $process.show();
+        var list = itemLists[queryString["l"]];
+        var priceList = queryString["d"].split(",");
+        var table = generatePriceListTable(list.list, priceList);
+        $priceTable.append($(table));
+        $("#process .price").attr("disabled", "disabled");
+        $inventoryList.on("paste change keyup", function() {
+          var userItemList = parseItemList($inventoryList.val().trim());
+          var total = 0;
+          $unexpected.hide();
+          $.each(userItemList, function(k, v) {
+            var found = false;
+            $.each(list.list, function(m, n) {
+              if(v == n) {
+                found = true;
+                total += 100 * priceList[m];
+                return;
+              }
+            });
+            if(!found) {
+              console.log("Item not found");
+              $unexpected.show();
+            }
+          });
+          console.log("Done processing: " + total);
+          $result.show();
+          $resultNumber.text(total);
+        });
+      })();
+  } else {
+    (function(){
+      console.log("New page");
+      // New page code
+      showNewScreen();
+    })();
+  }
 });
 
-},{"./itemLists.js":1,"jquery":2}]},{},[3]);
+},{"./itemLists.js":1,"jquery":3,"query-string":4}]},{},[6]);

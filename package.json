@@ -4,7 +4,8 @@
   "description": "",
   "main": "script.js",
   "dependencies": {
-    "jquery": "^3.3.1"
+    "jquery": "^3.3.1",
+    "query-string": "^6.0.0"
   },
   "devDependencies": {},
   "scripts": {
