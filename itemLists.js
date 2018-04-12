@@ -2,7 +2,8 @@
 // published, one must be extremely cautious about updating them. Ideally,
 // every single change should be a new version, but at minimum, it is
 // impossible for items to be removed from a list, and a list may only be
-// appended to, not re-arranged.
+// appended to, not re-arranged. The index of the lists in the outermost
+// array cannot be changed or deleted, only added to.
 
 module.exports = [
   // version 0, test version
