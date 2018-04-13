@@ -6,19 +6,209 @@
 // appended to, not re-arranged. The index of the lists in the outermost
 // array cannot be changed or deleted, only added to.
 
+/* Here is a sample inventory list, though you have to replace the spaces
+with tabs.
+
+Item 1  74  Mineral 0,74 m2 2 497,50 ISK
+Item 2  286 Mineral 2,86 m3 21 836,10 ISK
+*/
+
 module.exports = [
-  // version 0, test version
   {
-    "name": "TestItemList v1",
-    "list": ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5"]
-  },
-  {
-    "name": "TestItemList v2",
-    "list": ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6"]
+    "name": "Ore List v1",
+    "list": [
+      "Veldspar", "Concentrated Veldspar", "Dense Veldspar", "Stable Veldspar",
+      "Scordite", "Condensed Scordite", "Massive Scordite", "Glossy Scordite",
+      "Pyroxeres", "Solid Pyroxeres", "Viscous Pyroxeres", "Opulent Pyroxeres",
+      "Plagioclase", "Azure Plagioclase", "Rich Plagioclase", "Sparkling Plagioclase",
+      "Omber", "Silvery Omber", "Golden Omber", "Platinoid Omber",
+      "Kernite", "Luminous Kernite", "Fiery Kernite", "Resplendant Kernite",
+      "Jaspet", "Pure Jaspet", "Pristine Jaspet", "Immaculate Jaspet",
+      "Hemorphite", "Vivid Hemorphite", "Radiant Hemorphite", "Scintillating Hemorphite",
+      "Hedbergite", "Vitric Hedbergite", "Glazed Hedbergite", "Lustrous Hedbergite",
+      "Gneiss", "Iridescent Gneiss", "Prismatic Gneiss", "Brilliant Gneiss",
+      "Dark Ochre", "Onyx Ochre", "Obsidian Ochre", "Jet Ochre",
+      "Spodumain", "Bright Spodumain", "Gleaming Spodumain", "Dazzling Spodumain",
+      "Crokite", "Sharp Crokite", "Crystalline Crokite", "Pellucid Crokite",
+      "Bistot", "Triclinic Bistot", "Monoclinic Bistot", "Cubic Bistot",
+      "Arkonor", "Crimson Arkonor", "Prime Arkonor", "Flawless Arkonor",
+      "Mercoxit", "Magma Mercoxit", "Vitreous Mercoxit",
+      "Clear Icicle", "White Glaze", "Blue Ice", "Glacial Mass",
+      "Enriched Clear Icicle", "Pristine White Glaze", "Thick Blue Ice", "Smooth Glacial Mass",
+      "Glare Crust", "Dark Glitter", "Gelidus", "Krystallos",
+      "Bitumens", "Brimful Bitumens", "Glistening Bitumens",
+      "Coesite", "Brimful Coesite", "Glistening Coesite",
+      "Sylvite", "Brimful Sylvite", "Glistening Sylvite",
+      "Zeolites", "Brimful Zeolites", "Glistening Zeolites",
+      "Cobaltite", "Copious Cobaltite", "Twinkling Cobaltite",
+      "Euxenite", "Copius Euxenite", "Twinkling Euxenite",
+      "Scheelite", "Copious Scheelite", "Twinkling Scheelite",
+      "Titanite", "Copious Titanite", "Twinkling Titanite",
+      "Chromite", "Lavish Chromite", "Shimmering Chromite",
+      "Otavite", "Lavish Otavite", "Shimmering Otavite",
+      "Sperrylite", "Lavish Sperrylite", "Shimmering Sperrylite",
+      "Vanadinite", "Lavish Vanadinite", "Shimmering Vanadinite",
+      "Carnotite", "Replete Carnotite", "Glowing Carnotite",
+      "Cinnabar", "Replete Cinnabar", "Glowing Cinnabar",
+      "Pollucite", "Replete Pollucite", "Glowing Pollucite",
+      "Zircon", "Replete Zircon", "Glowing Zircon",
+      "Loparite", "Bountiful Loparite", "Shining Loparite",
+      "Monazite", "Bountiful Monazite", "Shining Monazite",
+      "Xenotime", "Bountiful Xenotime", "Shining Xenotime",
+      "Ytterbite", "Bountiful Ytterbite", "Shining Ytterbite"
+    ]
   }
 ]
 
 },{}],2:[function(require,module,exports){
+var $ = require("jquery");
+var queryString = require("query-string").parse(location.search);
+var itemLists = require("./itemLists.js")
+
+function showNewScreen() {
+  $("#new").show();
+  var $itemListSelect = $("#new .itemList");
+  var $boxList = $("#new .boxList");
+  var $submitBox = $("#new .submitBox");
+  var $submit = $("#new .submit");
+  var $nextStep = $("#new .nextStep");
+  var $linkInput = $("#new .linkInput");
+  $itemListSelect.empty();
+  $itemListSelect.append($("<option></option>").val(null).html("Select one..."));
+  $.each(itemLists, function(k, v) {
+    console.log(v.name);
+    $itemListSelect.append($("<option></option>").val(k).html(v.name));
+  });
+  $itemListSelect.on("change", function(){
+    $itemListSelect.attr("disabled", "disabled");
+    var list = itemLists[$itemListSelect.val()].list;
+    $boxList.empty()
+    var table = "<p>2. Fill in the price you're willing to pay per item</p>\n"
+      + generatePriceListTable(list, null);
+    $boxList.append($(table));
+    $submitBox.show();
+  });
+  $submit.on("click", function() {
+    $nextStep.show();
+    var data = [];
+    $("#new .price").each(function(k, v) {
+      if(v.value.trim() == "") {
+        v.value = "0";
+      }
+      data.push(v.value);
+    });
+    $linkInput.val(location.href + "?l=" + $itemListSelect.val() + "&d=" + data.join(","));
+  });
+}
+
+function generatePriceListTable(list, prices) {
+  var table = "<table><thead><tr><th>Item Name</th><th>Price Per Unit (isk)</th></tr></thead><tbody>";
+  $.each(list, function(k, v) {
+    table += "<tr><td>" + v + "</td><td><input type='text' class='price'";
+    if(prices != null) {
+      if(prices[k].trim() == "") {
+        prices[k] = "0";
+      }
+      table += "value='" + prices[k] + "'";
+    }
+    table += "></td></tr>";
+  });
+  table += "</tbody></table>";
+  return table;
+}
+
+function parseItemList(text) {
+  var ret = [];
+  var rows = text.split(/\n|\r\n|\n\r/);
+  $.each(rows, function(k, row) {
+    var cells = row.split("\t");
+    ret.push({"name": cells[0].trim(), "qty": cells[1].trim()});
+  });
+  return ret;
+}
+
+function removeUnrecognizedItems(items) {
+  var list = itemLists[queryString["l"]];
+  var ret = [];
+  var rows = items.split(/\n|\r\n|\n\r/);
+  $.each(rows, function(k, row) {
+    var cells = row.split("\t");
+    var found = false;
+    $.each(list.list, function(k, v) {
+      if(cells[0].trim() == v) {
+        found = true;
+        return false;
+      }
+    });
+    if(found) {
+      ret.push(row);
+    }
+  });
+  return ret.join("\n");
+}
+
+
+$(function() {
+  console.log(queryString["l"] === undefined);
+  if(queryString["l"] !== undefined && queryString["e"] !== undefined) {
+    (function() {
+      console.log("Existing page with edit");
+      // Existing page with edit
+    })();
+  } else if(queryString["l"] !== undefined && queryString["e"] === undefined){
+      (function(){
+        console.log("Existing page with process");
+        // Existing page with process
+        var $process = $("#process");
+        var $priceTable = $("#process .priceTable");
+        var $inventoryList = $("#process .inventoryList");
+        var $unexpected = $("#process .unrecognizedItemInBaggingArea");
+        var $result = $("#process .result");
+        var $resultNumber = $("#process .resultNumber");
+        var $unrecognizedButton = $("#process .unrecognizedButton");
+        $process.show();
+        var list = itemLists[queryString["l"]];
+        var priceList = queryString["d"].split(",");
+        var table = generatePriceListTable(list.list, priceList);
+        $priceTable.append($(table));
+        $("#process .price").attr("disabled", "disabled");
+        $unrecognizedButton.on("click", function() {
+          $inventoryList.val(removeUnrecognizedItems($inventoryList.val().trim()));
+          $unexpected.hide();
+        });
+        $inventoryList.on("paste change keyup", function() {
+          var userItemList = parseItemList($inventoryList.val().trim());
+          var total = 0;
+          $unexpected.hide();
+          $.each(userItemList, function(k, v) {
+            var found = false;
+            $.each(list.list, function(m, n) {
+              if(v.name == n) {
+                found = true;
+                total += v.qty * priceList[m];
+                return false;
+              }
+            });
+            if(!found) {
+              console.log("Item not found");
+              $unexpected.show();
+            }
+          });
+          console.log("Done processing: " + total);
+          $result.show();
+          $resultNumber.text(total);
+        });
+      })();
+  } else {
+    (function(){
+      console.log("New page");
+      // New page code
+      showNewScreen();
+    })();
+  }
+});
+
+},{"./itemLists.js":1,"jquery":4,"query-string":5}],3:[function(require,module,exports){
 'use strict';
 var token = '%[a-f0-9]{2}';
 var singleMatcher = new RegExp(token, 'gi');
@@ -114,7 +304,7 @@ module.exports = function (encodedURI) {
 	}
 };
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -10480,7 +10670,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 'use strict';
 const strictUriEncode = require('strict-uri-encode');
 const decodeComponent = require('decode-uri-component');
@@ -10696,125 +10886,8 @@ exports.parseUrl = (input, options) => {
 	};
 };
 
-},{"decode-uri-component":2,"strict-uri-encode":5}],5:[function(require,module,exports){
+},{"decode-uri-component":3,"strict-uri-encode":6}],6:[function(require,module,exports){
 'use strict';
 module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
 
-},{}],6:[function(require,module,exports){
-var $ = require("jquery");
-var queryString = require("query-string").parse(location.search);
-var itemLists = require("./itemLists.js")
-
-function showNewScreen() {
-  $("#new").show();
-  var $itemListSelect = $("#new .itemList");
-  var $boxList = $("#new .boxList");
-  var $submitBox = $("#new .submitBox");
-  var $submit = $("#new .submit");
-  var $nextStep = $("#new .nextStep");
-  var $linkInput = $("#new .linkInput");
-  $itemListSelect.empty();
-  $itemListSelect.append($("<option></option>").val(null).html("Select one..."));
-  $.each(itemLists, function(k, v) {
-    console.log(v.name);
-    $itemListSelect.append($("<option></option>").val(k).html(v.name));
-  });
-  $itemListSelect.on("change", function(){
-    $itemListSelect.attr("disabled", "disabled");
-    var list = itemLists[$itemListSelect.val()].list;
-    $boxList.empty()
-    var table = "<p>2. Fill in the price you're willing to pay per item</p>\n"
-      + generatePriceListTable(list, null);
-    $boxList.append($(table));
-    $submitBox.show();
-  });
-  $submit.on("click", function() {
-    $nextStep.show();
-    var data = [];
-    $("#new .price").each(function(k, v) {
-      if(v.value.trim() == "") {
-        v.value = "0";
-      }
-      data.push(v.value);
-    });
-    $linkInput.val(location.href + "?l=" + $itemListSelect.val() + "&d=" + data.join(","));
-  });
-}
-
-function generatePriceListTable(list, prices) {
-  var table = "<table><thead><tr><th>Item Name</th><th>Price Per Unit (isk)</th></tr></thead><tbody>";
-  $.each(list, function(k, v) {
-    table += "<tr><td>" + v + "</td><td><input type='text' class='price'";
-    if(prices != null) {
-      if(prices[k].trim() == "") {
-        prices[k] = "0";
-      }
-      table += "value='" + prices[k] + "'";
-    }
-    table += "></td></tr>";
-  });
-  table += "</tbody></table>";
-  return table;
-}
-
-function parseItemList(text) {
-  return text.split(/\n|\r\n|\n\r/);
-}
-
-
-$(function() {
-  console.log(queryString["l"] === undefined);
-  if(queryString["l"] !== undefined && queryString["e"] !== undefined) {
-    (function() {
-      console.log("Existing page with edit");
-      // Existing page with edit
-    })();
-  } else if(queryString["l"] !== undefined && queryString["e"] === undefined){
-      (function(){
-        console.log("Existing page with process");
-        // Existing page with process
-        var $process = $("#process");
-        var $priceTable = $("#process .priceTable");
-        var $inventoryList = $("#process .inventoryList");
-        var $unexpected = $("#process .unrecognizedItemInBaggingArea");
-        var $result = $("#process .result");
-        var $resultNumber = $("#process .resultNumber");
-        $process.show();
-        var list = itemLists[queryString["l"]];
-        var priceList = queryString["d"].split(",");
-        var table = generatePriceListTable(list.list, priceList);
-        $priceTable.append($(table));
-        $("#process .price").attr("disabled", "disabled");
-        $inventoryList.on("paste change keyup", function() {
-          var userItemList = parseItemList($inventoryList.val().trim());
-          var total = 0;
-          $unexpected.hide();
-          $.each(userItemList, function(k, v) {
-            var found = false;
-            $.each(list.list, function(m, n) {
-              if(v == n) {
-                found = true;
-                total += 100 * priceList[m];
-                return;
-              }
-            });
-            if(!found) {
-              console.log("Item not found");
-              $unexpected.show();
-            }
-          });
-          console.log("Done processing: " + total);
-          $result.show();
-          $resultNumber.text(total);
-        });
-      })();
-  } else {
-    (function(){
-      console.log("New page");
-      // New page code
-      showNewScreen();
-    })();
-  }
-});
-
-},{"./itemLists.js":1,"jquery":3,"query-string":4}]},{},[6]);
+},{}]},{},[2]);

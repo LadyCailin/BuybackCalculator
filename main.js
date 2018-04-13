@@ -55,7 +55,33 @@ function generatePriceListTable(list, prices) {
 }
 
 function parseItemList(text) {
-  return text.split(/\n|\r\n|\n\r/);
+  var ret = [];
+  var rows = text.split(/\n|\r\n|\n\r/);
+  $.each(rows, function(k, row) {
+    var cells = row.split("\t");
+    ret.push({"name": cells[0].trim(), "qty": cells[1].trim()});
+  });
+  return ret;
+}
+
+function removeUnrecognizedItems(items) {
+  var list = itemLists[queryString["l"]];
+  var ret = [];
+  var rows = items.split(/\n|\r\n|\n\r/);
+  $.each(rows, function(k, row) {
+    var cells = row.split("\t");
+    var found = false;
+    $.each(list.list, function(k, v) {
+      if(cells[0].trim() == v) {
+        found = true;
+        return false;
+      }
+    });
+    if(found) {
+      ret.push(row);
+    }
+  });
+  return ret.join("\n");
 }
 
 
@@ -76,12 +102,17 @@ $(function() {
         var $unexpected = $("#process .unrecognizedItemInBaggingArea");
         var $result = $("#process .result");
         var $resultNumber = $("#process .resultNumber");
+        var $unrecognizedButton = $("#process .unrecognizedButton");
         $process.show();
         var list = itemLists[queryString["l"]];
         var priceList = queryString["d"].split(",");
         var table = generatePriceListTable(list.list, priceList);
         $priceTable.append($(table));
         $("#process .price").attr("disabled", "disabled");
+        $unrecognizedButton.on("click", function() {
+          $inventoryList.val(removeUnrecognizedItems($inventoryList.val().trim()));
+          $unexpected.hide();
+        });
         $inventoryList.on("paste change keyup", function() {
           var userItemList = parseItemList($inventoryList.val().trim());
           var total = 0;
@@ -89,10 +120,10 @@ $(function() {
           $.each(userItemList, function(k, v) {
             var found = false;
             $.each(list.list, function(m, n) {
-              if(v == n) {
+              if(v.name == n) {
                 found = true;
-                total += 100 * priceList[m];
-                return;
+                total += v.qty * priceList[m];
+                return false;
               }
             });
             if(!found) {
