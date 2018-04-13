@@ -122,7 +122,7 @@ function parseItemList(text) {
   var rows = text.split(/\n|\r\n|\n\r/);
   $.each(rows, function(k, row) {
     var cells = row.split("\t");
-    ret.push({"name": cells[0].trim(), "qty": cells[1].trim()});
+    ret.push({"name": cells[0].trim(), "qty": cells[1].trim().replace(/[ ,]/, "")});
   });
   return ret;
 }
