@@ -69,7 +69,7 @@ module.exports = [
       "Water-Cooled CPU", "Viral Agent", "Transmitter", "Test Cultures", "Synthetic Oil", "Supertensile Plastics",
       "Superconductors", "Silicate Glass", "Rocket Fuel", "Polytextiles", "Polyaramids", "Oxides", "Nanites",
       "Miniature Electronics", "Microfiber Shielding", "Mechanical Parts", "Livestock", "Genetically Enhanced Livestock",
-      "Fertilizer", "Enriched Uranium", "Consumer Electronics", "Construction Blocks", "Biocells",
+      "Fertilizer", "Enriched Uranium", "Coolant", "Consumer Electronics", "Construction Blocks", "Biocells",
       "Supercomputers", "Cryoprotectant Solution", "Biotech Research Reports", "Planetary Vehicles", 
       "Hazmat Detection Systems", "Gel-Matrix Biopaste", "Vaccines", "Ukomi Super Conductors",
       "Transcranial Microcontrollers", "Synthetic Synapses", "Smartfab Units", "Robotics", "Nuclear Reactors",
