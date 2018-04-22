@@ -56,5 +56,27 @@ module.exports = [
       "Xenotime", "Bountiful Xenotime", "Shining Xenotime",
       "Ytterbite", "Bountiful Ytterbite", "Shining Ytterbite"
     ]
+  },
+  {
+    "name": "PI Item List v1",
+    "list": [
+      "Aqueous Liquids", "Heavy Metals", "Felsic Magma", "Base Metals", "Complex Organisms", "Noble Metals",
+      "Suspended Plasma", "Noble Gas", "Reactive Gas", "Autotrophs", "Ionic Solutions", "Non-CS Crystals",
+      "Planktic Colonies", "Carbon Compounds", "Micro Organisms",
+      "Water", "Toxic Metals", "Silicon", "Reactive Metals", "Proteins", "Precious Metals", "Plasmoids",
+      "Oxygen", "Oxidizing Compound", "Industrial Fibers", "Electrolytes", "Chiral Structures",
+      "Biomass", "Biofuels", "Bacteria",
+      "Water-Cooled CPU", "Viral Agent", "Transmitter", "Test Cultures", "Synthetic Oil", "Supertensile Plastics",
+      "Superconductors", "Silicate Glass", "Rocket Fuel", "Polytextiles", "Polyaramids", "Oxides", "Nanites",
+      "Miniature Electronics", "Microfiber Shielding", "Mechanical Parts", "Livestock", "Genetically Enhanced Livestock",
+      "Fertilizer", "Enriched Uranium", "Consumer Electronics", "Construction Blocks", "Biocells",
+      "Supercomputers", "Cryoprotectant Solution", "Biotech Research Reports", "Planetary Vehicles", 
+      "Hazmat Detection Systems", "Gel-Matrix Biopaste", "Vaccines", "Ukomi Super Conductors",
+      "Transcranial Microcontrollers", "Synthetic Synapses", "Smartfab Units", "Robotics", "Nuclear Reactors",
+      "Neocoms", "Industrial Explosives", "High-Tech Transmitters", "Hermetic Membranes", "Guidance Systems",
+      "Data Chips", "Condensates", "Camera Drones",
+      "Broadcast Node", "Integrity Response Drones", "Nano-Factory", "Organic Mortar Applicators",
+      "Recursive Computing Module", "Self-Harmonizing Power Core", "Sterile Conduits", "Wetware Mainframe"
+    ]
   }
 ]
